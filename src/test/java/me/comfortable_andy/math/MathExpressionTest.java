@@ -32,8 +32,12 @@ public class MathExpressionTest {
             "sin(toRadians(77))", 0.9743700648
     );
 
+    private static final List<String> FAILS = List.of(
+            "acos()", "2^", "1+"
+    );
+
     @Test
-    public void testEvaluate() {
+    public void testEvaluatePass() {
         final Map<String, Double> testing = new HashMap<>();
         testing.putAll(SIMPLE_EXPRESSIONS);
         testing.putAll(HARDER_EXPRESSIONS);
@@ -51,6 +55,14 @@ public class MathExpressionTest {
             assertTrue(Math.abs(entry.getValue() - evaluated) < 0.000001);
             System.out.println("Done in " +  colorize(System.currentTimeMillis() - time + "", BOLD()) + "ms");
             System.out.println();
+        }
+    }
+
+    @Test
+    public void testEvaluateFail() {
+        for (String fail : FAILS) {
+            System.out.println(fail);
+            assertThrows(IllegalStateException.class, () -> MathExpression.parse(fail).evaluate());
         }
     }
 
