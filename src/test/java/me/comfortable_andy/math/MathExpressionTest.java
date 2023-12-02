@@ -47,9 +47,9 @@ public class MathExpressionTest {
             expression.setVariable("x", 0);
             System.out.println("Expecting: " + colorize(String.valueOf(entry.getValue()), BRIGHT_BLACK_BACK()));
             final double evaluated = expression.evaluate();
-            System.out.println("Received: " + colorize(String.valueOf(evaluated), BLACK_TEXT(), BRIGHT_WHITE_BACK()));
+            System.out.println("Evaluated: " + colorize(String.valueOf(evaluated), BLACK_TEXT(), BRIGHT_WHITE_BACK()));
             assertTrue(Math.abs(entry.getValue() - evaluated) < 0.000001);
-            System.out.println("Done in " + (System.currentTimeMillis() - time) + "ms");
+            System.out.println("Done in " +  colorize(System.currentTimeMillis() - time + "", BOLD()) + "ms");
             System.out.println();
         }
     }
