@@ -47,6 +47,7 @@ public class MathExpression {
         */
 
         // first ensure list is valid
+        if (this.parts.isEmpty()) throw new IllegalStateException("Empty parts list");
         if (!isValid()) throw new IllegalStateException("Invalid expression");
 
         // then evaluate all evaluable parts
