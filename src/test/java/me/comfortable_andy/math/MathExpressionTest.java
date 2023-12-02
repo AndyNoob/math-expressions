@@ -61,9 +61,11 @@ public class MathExpressionTest {
     @Test
     public void testEvaluateFail() {
         for (String fail : FAILS) {
-            System.out.println(fail);
+            System.out.print("Failing: " + colorize(fail, RED_BACK(), BRIGHT_WHITE_TEXT()) + " ... ");
             assertThrows(IllegalStateException.class, () -> MathExpression.parse(fail).evaluate());
+            System.out.println(colorize("✓", BRIGHT_GREEN_TEXT()));
         }
+        System.out.println();
     }
 
     private static String syntaxHighlight(MathExpression expression) {
