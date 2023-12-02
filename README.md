@@ -13,14 +13,14 @@ A lil one class library to quickly evaluate simple math expressions. Or just to 
 <summary>Maven (edit pom.xml)</summary>
 
 ```xml
-	<repositories>
+    <repositories>
         ...
-		<repository>
-		    <id>jitpack.io</id>
-		    <url>https://jitpack.io</url>
-		</repository>
+        <repository>
+            <id>jitpack.io</id>
+            <url>https://jitpack.io</url>
+        </repository>
         ...
-	</repositories>
+    </repositories>
 ```
 
 ```xml
@@ -51,7 +51,9 @@ repositories {
 
 ```groovy
 dependencies {
+    // ...
     implementation 'com.github.AndyNoob:math-expressions:INSERT VERSION HERE !!!'
+    // ...
 }
 ```
 
