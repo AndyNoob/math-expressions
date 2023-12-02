@@ -22,6 +22,7 @@ import java.util.stream.Collectors;
  *
  * @author AndyNoob
  */
+@SuppressWarnings({"UnusedReturnValue", "unused"})
 @RequiredArgsConstructor
 @ToString
 @Accessors(chain = true)
@@ -105,8 +106,9 @@ public class MathExpression {
         return true;
     }
 
-    public void setVariable(String name, double val) {
+    public MathExpression setVariable(String name, double val) {
         this.variables.put(name, val);
+        return this;
     }
 
     public Double removeVariable(String name) {
