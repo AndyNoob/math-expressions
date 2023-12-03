@@ -29,7 +29,9 @@ public class MathExpressionTest {
             "asin(sin(0))", 0.0,
             "sin(x)", 0.0,
             "2^(sin(pi))", 1.0,
-            "sin(toRadians(77))", 0.9743700648
+            "sin(toRadians(77))", 0.9743700648,
+            "sqrt((99*10^2)/(314*455)", 0.263237,
+            "sqrt(99*10^2/314/455)", 0.263237
     );
 
     private static final List<String> FAILS = List.of(
