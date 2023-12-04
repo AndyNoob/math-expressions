@@ -7,10 +7,7 @@ import lombok.experimental.Accessors;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiFunction;
 import java.util.regex.Matcher;
@@ -125,7 +122,7 @@ public class MathExpression {
                 .map(Part.Operator.OperatorType::getSymbol)
                 .map(chara -> "\\" + chara)
                 .collect(Collectors.joining());
-        final Pattern pattern = Pattern.compile("([A-Za-z]+)|(\\(.+\\))|([" + operators + "])|(-?\\d+(?>\\.\\d+|\\.)?)");
+        final Pattern pattern = Pattern.compile("([A-Za-z0-9]+)|(\\(.+\\))|([" + operators + "])|(-?\\d+(?>\\.\\d+|\\.)?)");
         final Matcher matcher = pattern.matcher(expression);
 
         final List<Part> parts = new ArrayList<>();
@@ -152,16 +149,18 @@ public class MathExpression {
                 // there must be an operator in between, or else it would be treated as
                 // a function.
                 final String parenthesisStr = group.substring(1, group.length() - 1);
-                final MathExpression inner = MathExpression.parse(parenthesisStr, variables);
 
-                final Part.Parenthesis parenthesis = new Part.Parenthesis(inner);
                 if (onHold == null) {
-                    part = parenthesis;
+                    part = new Part.Parenthesis(MathExpression.parse(parenthesisStr, variables));
                     if (last instanceof Part.Evaluable)
-                        parts.add(new Part.Operator(Part.Operator.OperatorType.MULTIPLY));
+                        parts.add(last = new Part.Operator(Part.Operator.OperatorType.MULTIPLY));
                 }
                 else {
-                    part = new Part.Function(onHold, parenthesis);
+                    final List<MathExpression> expressions = new ArrayList<>();
+                    for (String s : parenthesisStr.split(",\\s*")) {
+                        expressions.add(MathExpression.parse(s, variables));
+                    }
+                    part = new Part.Function(onHold, expressions);
                     onHold = null;
                 }
             } else if (group.length() == 1 && operators.contains(group))
@@ -305,7 +304,7 @@ public class MathExpression {
             }
         }
 
-        record Function(String name, Parenthesis parenthesis) implements Part, Evaluable {
+        record Function(String name, List<MathExpression> expressions) implements Part, Evaluable {
 
             @Override
             public List<Class<? extends Part>> validNextParts() {
@@ -319,12 +318,19 @@ public class MathExpression {
 
             @Override
             public double evaluate(Map<String, Double> variables) {
-                final double evaluatedParenthesis = this.parenthesis().evaluate(variables);
+                final Object[] evaluatedValues = new Object[this.expressions.size()];
+                for (int i = 0; i < this.expressions.size(); i++) {
+                    evaluatedValues[i] = this.expressions.get(i).evaluate();
+                }
+                final Class<?>[] classes = new Class<?>[evaluatedValues.length];
+                Arrays.fill(classes, double.class);
                 try {
-                    final Method mathMethod = Math.class.getMethod(this.name, double.class);
-                    return (double) mathMethod.invoke(null, evaluatedParenthesis);
+                    final Method mathMethod = Math.class.getMethod(this.name, classes);
+                    return (double) mathMethod.invoke(null, evaluatedValues);
                 } catch (ReflectiveOperationException e) {
-                    return this.parenthesis().evaluate(variables);
+                    throw new IllegalStateException("Unknown math function " + this.name + " " + Arrays.toString(classes));
+                } catch (IllegalArgumentException e) {
+                    throw new IllegalStateException("Argument mismatch for math function " + this.name + " " + Arrays.toString(classes) + " (supplied " + Arrays.toString(evaluatedValues) + ")");
                 }
             }
         }

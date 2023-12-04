@@ -32,7 +32,8 @@ public class MathExpressionTest {
             "2^(sin(pi))", 1.0,
             "sin(toRadians(77))", 0.9743700648,
             "sqrt((99*10^2)/(314*455)", 0.263237,
-            "sqrt(99*10^2/314/455)", 0.263237
+            "sqrt(99*10^2/314/455)", 0.263237,
+            "atan2(sqrt(25), 1 * 3 * 10 / 10)", 1.0303768265243125
     );
 
     private static final List<String> FAILS = List.of(
@@ -54,9 +55,9 @@ public class MathExpressionTest {
             expression.setVariable("x", 0);
             System.out.println("Expecting: " + colorize(String.valueOf(entry.getValue()), BRIGHT_BLACK_BACK()));
             final double evaluated = expression.evaluate();
-            System.out.println("Evaluated: " + colorize(String.valueOf(evaluated), BLACK_TEXT(), BRIGHT_WHITE_BACK()));
+            System.out.print("Evaluated: " + colorize(String.valueOf(evaluated), BLACK_TEXT(), BRIGHT_WHITE_BACK()) + " ... ");
             assertTrue(Math.abs(entry.getValue() - evaluated) < 0.000001);
-            System.out.println("Done in " +  colorize(System.currentTimeMillis() - time + "", BOLD()) + "ms");
+            System.out.println(colorize("✓", BRIGHT_GREEN_TEXT()) + " (" + colorize(System.currentTimeMillis() - time + "", BOLD()) + "ms)");
             System.out.println();
         }
     }
@@ -76,7 +77,7 @@ public class MathExpressionTest {
             if (part instanceof MathExpression.Part.Number number) return colorize(number.number() + "", BRIGHT_WHITE_TEXT());
             else if (part instanceof MathExpression.Part.Operator operator) return colorize(operator.operator().getSymbol() + "", BOLD());
             else if (part instanceof MathExpression.Part.Parenthesis parenthesis) return "(" + syntaxHighlight(parenthesis.expression()) + ")";
-            else if (part instanceof MathExpression.Part.Function function) return colorize(function.name(), ITALIC()) + "(" + syntaxHighlight(function.parenthesis().expression()) + ")";
+            else if (part instanceof MathExpression.Part.Function function) return colorize(function.name(), ITALIC()) + "(" + function.expressions().stream().map(MathExpressionTest::syntaxHighlight).collect(Collectors.joining(", ")) + ")";
             else if (part instanceof MathExpression.Part.Variable variable) return colorize(variable.name(), BRIGHT_WHITE_TEXT());
             return "UNKNOWN_PART";
         }).collect(Collectors.joining(" "));
