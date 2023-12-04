@@ -189,9 +189,9 @@ public class MathExpression {
             if (onHold != null) {
                 // part could be a number or operator
                 if (part instanceof Part.Number)
-                    throw new IllegalStateException("Cannot have variable directly before a number at index " + matcher.start() + " (" + group + ")");
+                    throw new IllegalStateException("Cannot have variable directly before a number at index " + matcher.start() + " (" + parts + ")");
 
-                parts.add(new Part.Variable(onHold));
+                parts.add(last = new Part.Variable(onHold));
                 onHold = null;
             }
 
@@ -203,7 +203,7 @@ public class MathExpression {
                     parts.add(part);
                     last = part;
                 } else
-                    throw new IllegalStateException("Unexpected token at index " + matcher.start() + ", expecting " + last.validNextParts().stream().map(Class::getSimpleName).collect(Collectors.joining(" or ")) + " (" + group + ")");
+                    throw new IllegalStateException("Unexpected token at index " + matcher.start() + ", expecting " + last.validNextParts().stream().map(Class::getSimpleName).collect(Collectors.joining(" or ")) + " (" + parts + ")");
             }
         }
 
