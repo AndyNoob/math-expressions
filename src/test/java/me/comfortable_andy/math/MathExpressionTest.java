@@ -31,13 +31,13 @@ public class MathExpressionTest {
             "2^x + 20", 21.0,
             "2^(sin(pi))", 1.0,
             "sin(toRadians(77))", 0.9743700648,
-            "sqrt((99*10^2)/(314*455)", 0.263237,
+            "sqrt((99*10^2)/(314*455))", 0.263237,
             "sqrt(99*10^2/314/455)", 0.263237,
             "atan2(sqrt(25), 1 * 3 * 10 / 10)", 1.0303768265243125
     );
 
     private static final List<String> FAILS = List.of(
-            "acos()", "2^", "1+"
+            "acos()", "2^", "1+", "atan2(0)", "(", ")"
     );
 
     @Test

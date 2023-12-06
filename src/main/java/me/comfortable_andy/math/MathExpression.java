@@ -4,6 +4,8 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.ToString;
 import lombok.experimental.Accessors;
+import me.comfortable_andy.math.MathExpression.Part.*;
+import me.comfortable_andy.math.MathExpression.Part.Operator.OperatorType;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -51,33 +53,34 @@ public class MathExpression {
 
         final List<Double> evaluated = new ArrayList<>();
         // the size of this list should be 1 less than the evaluated list
-        final List<Part.Operator> operators = new ArrayList<>();
+        final List<Operator> operators = new ArrayList<>();
 
         for (Part part : this.parts) {
             if (part instanceof Part.Evaluable) {
                 evaluated.add(((Part.Evaluable) part).evaluate(this.variables));
             } else {
-                operators.add((Part.Operator) part);
+                operators.add((Operator) part);
             }
         }
 
-        for (Part.Operator.OperatorType type : Part.Operator.OperatorType.values()) {
+        for (EnumSet<OperatorType> types : OperatorType.getByOrder()) {
             // the constants in the operator enum are ordered by their precedence in
             // order of operation
-            pass(type, evaluated, operators);
+            pass(types, evaluated, operators);
         }
 
         return evaluated.get(0);
     }
 
-    private void pass(Part.Operator.OperatorType type, List<Double> evaluated, List<Part.Operator> operators) {
+    private void pass(EnumSet<OperatorType> types, List<Double> evaluated, List<Operator> operators) {
         for (int i = 0; i < operators.size(); i++) {
-            if (operators.get(i).operator() != type) continue;
+            if (!types.contains(operators.get(i).operator())) continue;
 
             final double left = evaluated.get(i);
             final double right = evaluated.get(i + 1);
-            final double result = operators.get(i)
-                    .operator()
+            final OperatorType operator = operators.get(i)
+                    .operator();
+            final double result = operator
                     .getCombiner()
                     .apply(left, right);
 
@@ -118,8 +121,8 @@ public class MathExpression {
     }
 
     public static MathExpression parse(String expression, Map<String, Double> variables) {
-        final String operators = Arrays.stream(Part.Operator.OperatorType.values())
-                .map(Part.Operator.OperatorType::getSymbol)
+        final String operators = Arrays.stream(OperatorType.values())
+                .map(OperatorType::getSymbol)
                 .map(chara -> "\\" + chara)
                 .collect(Collectors.joining());
         final Pattern pattern = Pattern.compile("([A-Za-z0-9]+)|(\\(.+\\))|([" + operators + "])|(-?\\d+(?>\\.\\d+|\\.)?)");
@@ -153,9 +156,8 @@ public class MathExpression {
                 if (onHold == null) {
                     part = new Part.Parenthesis(MathExpression.parse(parenthesisStr, variables));
                     if (last instanceof Part.Evaluable)
-                        parts.add(last = new Part.Operator(Part.Operator.OperatorType.MULTIPLY));
-                }
-                else {
+                        parts.add(last = new Operator(OperatorType.MULTIPLY));
+                } else {
                     final List<MathExpression> expressions = new ArrayList<>();
                     for (String s : parenthesisStr.split(",\\s*")) {
                         expressions.add(MathExpression.parse(s, variables));
@@ -164,20 +166,20 @@ public class MathExpression {
                     onHold = null;
                 }
             } else if (group.length() == 1 && operators.contains(group))
-                part = new Part.Operator(Part.Operator.OperatorType.valueOfSymbol(group.charAt(0)));
+                part = new Operator(OperatorType.valueOfSymbol(group.charAt(0)));
             else {
                 // is a name
                 // could be a variable or a function name
                 if (onHold != null) {
                     // relaxing a bit here and say 2 names separated by blanks means multiplication
                     parts.add(new Part.Variable(onHold));
-                    parts.add(new Part.Operator(Part.Operator.OperatorType.MULTIPLY));
+                    parts.add(new Operator(OperatorType.MULTIPLY));
                     parts.add(new Part.Variable(group));
                     onHold = null;
                 } else {
                     if (last instanceof Part.Number) {
                         // something like "2a"
-                        parts.add(new Part.Operator(Part.Operator.OperatorType.MULTIPLY));
+                        parts.add(new Operator(OperatorType.MULTIPLY));
                         parts.add(new Part.Variable(group)
                         );
                     } else onHold = group;
@@ -267,21 +269,37 @@ public class MathExpression {
             @RequiredArgsConstructor
             enum OperatorType {
                 // these are in order of operation
-                POWER('^', Math::pow),
-                MULTIPLY('*', (a, b) -> a * b),
-                DIVIDE('/', (a, b) -> a / b),
-                ADD('+', Double::sum),
-                SUBTRACT('-', (a, b) -> a - b),
+                POWER('^', Math::pow, 0),
+                MULTIPLY('*', (a, b) -> a * b, 1),
+                DIVIDE('/', (a, b) -> a / b, 1),
+                ADD('+', Double::sum, 2),
+                SUBTRACT('-', (a, b) -> a - b, 2),
                 ;
 
                 private final char symbol;
                 private final BiFunction<Double, Double, Double> combiner;
+                private final int executionIndex;
 
                 public static OperatorType valueOfSymbol(char c) {
                     for (OperatorType type : values()) {
                         if (type.symbol == c) return type;
                     }
                     throw new IllegalArgumentException("Could not find operator for symbol " + c);
+                }
+
+                public static List<EnumSet<OperatorType>> getByOrder() {
+                    return Arrays.stream(OperatorType.values())
+                            .sorted(Comparator.comparing(OperatorType::getExecutionIndex))
+                            .reduce(new ArrayList<>(), (list, operator) -> {
+                                if (list.size() == operator.getExecutionIndex())
+                                    list.add(EnumSet.of(operator));
+                                else
+                                    list.get(operator.getExecutionIndex()).add(operator);
+                                return list;
+                            }, (listA, listB) -> {
+                                listA.addAll(listB);
+                                return listA;
+                            });
                 }
             }
         }
