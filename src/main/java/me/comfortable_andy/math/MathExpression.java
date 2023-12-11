@@ -121,52 +121,75 @@ public class MathExpression {
     }
 
     public static MathExpression parse(String expression, Map<String, Double> variables) {
+        if (expression.isBlank())
+            return new MathExpression(new ArrayList<>(), variables);
+
+        final Pattern pattern = Pattern.compile("([()]|[^()]+)");
+        final Matcher matcher = pattern.matcher(expression);
+
+        final List<String> tokens = new ArrayList<>();
+        while (matcher.find())
+            tokens.add(matcher.group());
+
+        final Stack<List<Part>> partStack = new Stack<>();
+
+        List<Part> current = new ArrayList<>();
+
+        for (final String token : tokens) {
+            if (token == null) continue;
+            if (token.equals("(")) {
+                partStack.push(current);
+                current = new ArrayList<>();
+            } else if (token.equals(")")) {
+                if (partStack.isEmpty())
+                    throw new IllegalStateException("Illegal closing parenthesis");
+                final List<Part> last = partStack.lastElement();
+                if (!last.isEmpty() && last.get(last.size() - 1) instanceof Variable variable) {
+                    last.remove(last.size() - 1);
+                    last.add(new Function(variable.name, splitComma(current).stream().map(list -> new MathExpression(list, variables)).collect(Collectors.toList())));
+                } else partStack.lastElement().add(new Parenthesis(new MathExpression(current, variables)));
+                current = partStack.pop();
+            } else {
+                current.addAll(parseSimple(token));
+            }
+        }
+
+        partStack.push(current);
+
+        if (partStack.isEmpty())
+            throw new IllegalStateException("Empty expression?" + partStack);
+        final List<Part> parts;
+        if (partStack.size() != 1 || (parts = partStack.get(0)).isEmpty() || !parts.get(parts.size() - 1).isComplete())
+            throw new IllegalStateException("Incomplete expression, " + partStack);
+
+        return new MathExpression(parts, variables);
+    }
+
+    private static List<Part> parseSimple(String tokens) {
         final String operators = Arrays.stream(OperatorType.values())
                 .map(OperatorType::getSymbol)
                 .map(chara -> "\\" + chara)
                 .collect(Collectors.joining());
-        final Pattern pattern = Pattern.compile("([A-Za-z0-9]+)|(\\(.+\\))|([" + operators + "])|(-?\\d+(?>\\.\\d+|\\.)?)");
-        final Matcher matcher = pattern.matcher(expression);
+        final Pattern pattern = Pattern.compile("([A-Za-z0-9]+)|,|(-?\\\\d+(?>\\\\.\\\\d+|\\\\.)?)|[" + operators + "]");
+        final Matcher matcher = pattern.matcher(tokens);
 
         final List<Part> parts = new ArrayList<>();
 
-        Part last = null;
         String onHold = null;
+        Part last = null;
 
         while (matcher.find()) {
-            final String group = matcher.group();
-
-            if (group == null) continue;
+            final String token = matcher.group();
+            final Double number = tryParse(token);
 
             final Part part;
 
-            final Double number = tryParse(group);
-
             if (number != null)
                 part = new Part.Number(number);
-            else if (group.startsWith("(")) {
-                // is a parenthesis
-                // could be a standalone,
-                // or connected to a function, if there's a name on hold
-                // which means if an input wants to multiply a variable by a parenthesis
-                // there must be an operator in between, or else it would be treated as
-                // a function.
-                final String parenthesisStr = group.substring(1, group.length() - 1);
-
-                if (onHold == null) {
-                    part = new Part.Parenthesis(MathExpression.parse(parenthesisStr, variables));
-                    if (last instanceof Part.Evaluable)
-                        parts.add(last = new Operator(OperatorType.MULTIPLY));
-                } else {
-                    final List<MathExpression> expressions = new ArrayList<>();
-                    for (String s : parenthesisStr.split(",\\s*")) {
-                        expressions.add(MathExpression.parse(s, variables));
-                    }
-                    part = new Part.Function(onHold, expressions);
-                    onHold = null;
-                }
-            } else if (group.length() == 1 && operators.contains(group))
-                part = new Operator(OperatorType.valueOfSymbol(group.charAt(0)));
+            else if (token.equals(","))
+                part = new Comma();
+            else if (token.length() == 1 && operators.contains(token))
+                part = new Operator(OperatorType.valueOfSymbol(token.charAt(0)));
             else {
                 // is a name
                 // could be a variable or a function name
@@ -174,15 +197,15 @@ public class MathExpression {
                     // relaxing a bit here and say 2 names separated by blanks means multiplication
                     parts.add(new Part.Variable(onHold));
                     parts.add(new Operator(OperatorType.MULTIPLY));
-                    parts.add(new Part.Variable(group));
+                    parts.add(new Part.Variable(token));
                     onHold = null;
                 } else {
                     if (last instanceof Part.Number) {
                         // something like "2a"
                         parts.add(new Operator(OperatorType.MULTIPLY));
-                        parts.add(new Part.Variable(group)
+                        parts.add(new Part.Variable(token)
                         );
-                    } else onHold = group;
+                    } else onHold = token;
                 }
                 continue;
             }
@@ -208,11 +231,22 @@ public class MathExpression {
             }
         }
 
-        if (onHold != null) parts.add(last = new Part.Variable(onHold));
-        if (last != null && !last.isComplete())
-            throw new IllegalStateException("Incomplete expression, ended with " + last);
+        // this would probably and very likely be a function
+        if (onHold != null) parts.add(new Part.Variable(onHold));
+        return parts;
+    }
 
-        return new MathExpression(parts, variables);
+    private static List<List<Part>> splitComma(List<Part> parts) {
+        final List<List<Part>> split = new ArrayList<>();
+        List<Part> current = new ArrayList<>();
+        for (Part part : parts) {
+            if (part instanceof Comma) {
+                split.add(current);
+                current = new ArrayList<>();
+            } else current.add(part);
+        }
+        split.add(current);
+        return split;
     }
 
     private static Double tryParse(String str) {
@@ -385,6 +419,19 @@ public class MathExpression {
                 return val;
             }
 
+        }
+
+        record Comma() implements Part {
+
+            @Override
+            public List<Class<? extends Part>> validNextParts() {
+                return List.of(Parenthesis.class, Number.class, Variable.class, Function.class);
+            }
+
+            @Override
+            public boolean isComplete() {
+                return false;
+            }
         }
 
     }
