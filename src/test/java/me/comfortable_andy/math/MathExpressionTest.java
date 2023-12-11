@@ -63,6 +63,11 @@ public class MathExpressionTest {
     }
 
     @Test
+    public void testRandom() {
+        System.out.println(MathExpression.parse("random()").evaluate());
+    }
+
+    @Test
     public void testEvaluateFail() {
         for (String fail : FAILS) {
             System.out.print("Failing: " + colorize(fail, RED_BACK(), BRIGHT_WHITE_TEXT()) + " ... ");

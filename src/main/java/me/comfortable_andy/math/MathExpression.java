@@ -358,6 +358,12 @@ public class MathExpression {
 
         record Function(String name, List<MathExpression> expressions) implements Part, Evaluable {
 
+            public Function(String name, List<MathExpression> expressions) {
+                this.name = name;
+                this.expressions = expressions;
+                this.expressions.removeIf(expression -> expression.getParts().isEmpty());
+            }
+
             @Override
             public List<Class<? extends Part>> validNextParts() {
                 return List.of(Operator.class);
