@@ -37,7 +37,7 @@ public class MathExpressionTest {
     );
 
     private static final List<String> FAILS = List.of(
-            "acos()", "2^", "1+", "atan2(0)", "(", ")"
+            "acos()", "2^", "1+", "atan2(0)", "(", ")", "(1+1(96)^2abc"
     );
 
     @Test
@@ -53,11 +53,11 @@ public class MathExpressionTest {
             final MathExpression expression = MathExpression.parse(entry.getKey());
             System.out.println("Expression parsed: " + syntaxHighlight(expression));
             expression.setVariable("x", 0);
-            System.out.println("Expecting: " + colorize(String.valueOf(entry.getValue()), BRIGHT_BLACK_BACK()));
+            System.out.print("Evaluating: " + colorize(String.valueOf(entry.getValue()), BRIGHT_BLACK_BACK()) + " ... ");
             final double evaluated = expression.evaluate();
-            System.out.print("Evaluated: " + colorize(String.valueOf(evaluated), BLACK_TEXT(), BRIGHT_WHITE_BACK()) + " ... ");
+            System.out.print(colorize(String.valueOf(evaluated), BLACK_TEXT(), BRIGHT_WHITE_BACK()));
             assertTrue(Math.abs(entry.getValue() - evaluated) < 0.000001);
-            System.out.println(colorize("✓", BRIGHT_GREEN_TEXT()) + " (" + colorize(System.currentTimeMillis() - time + "", BOLD()) + "ms)");
+            System.out.println(colorize(" ✓", BRIGHT_GREEN_TEXT()) + " (" + colorize(System.currentTimeMillis() - time + "", BOLD()) + "ms)");
             System.out.println();
         }
     }
