@@ -1,6 +1,7 @@
 # Math Expressions
 
-[![](https://jitpack.io/v/AndyNoob/math-expressions.svg)](https://jitpack.io/#AndyNoob/math-expressions)
+[![](https://jitpack.io/v/AndyNoob/math-expressions.svg)](https://jitpack.io/#AndyNoob/math-expressions)<br>
+[![discord banner](https://discordapp.com/api/guilds/1184300001405440030/widget.png?style=banner2)](https://discord.gg/hmqspPuhHd)
 
 A lil one class library to quickly evaluate simple math expressions. Or just to parse it and apply syntax highlighting.
 
