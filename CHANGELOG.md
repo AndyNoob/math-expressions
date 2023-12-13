@@ -1,3 +1,8 @@
+# v1.2.2
+```diff
+~ Downgraded java to 8 (no breaking changes)
+```
+
 # v1.2.1
 ```diff
 + Allow function call with no parameter
