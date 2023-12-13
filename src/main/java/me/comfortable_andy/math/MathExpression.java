@@ -1,8 +1,8 @@
 package me.comfortable_andy.math;
 
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
-import lombok.ToString;
 import lombok.experimental.Accessors;
 import me.comfortable_andy.math.MathExpression.Part.*;
 import me.comfortable_andy.math.MathExpression.Part.Operator.OperatorType;
@@ -23,7 +23,6 @@ import java.util.stream.Collectors;
  */
 @SuppressWarnings({"UnusedReturnValue", "unused"})
 @RequiredArgsConstructor
-@ToString
 @Accessors(chain = true)
 public class MathExpression {
 
@@ -116,12 +115,17 @@ public class MathExpression {
         return this.variables.remove(name);
     }
 
+    @Override
+    public String toString() {
+        return this.parts.stream().map(Part::toString).collect(Collectors.joining());
+    }
+
     public static MathExpression parse(String expression) {
         return parse(expression, new ConcurrentHashMap<>());
     }
 
     public static MathExpression parse(String expression, Map<String, Double> variables) {
-        if (expression.isBlank())
+        if (expression.trim().isEmpty())
             return new MathExpression(new ArrayList<>(), variables);
 
         final Pattern pattern = Pattern.compile("([()]|[^()]+)");
@@ -144,9 +148,10 @@ public class MathExpression {
                 if (partStack.isEmpty())
                     throw new IllegalStateException("Illegal closing parenthesis");
                 final List<Part> last = partStack.lastElement();
-                if (!last.isEmpty() && last.get(last.size() - 1) instanceof Variable variable) {
+                final Part part;
+                if (!last.isEmpty() && (part = last.get(last.size() - 1)) instanceof Variable) {
                     last.remove(last.size() - 1);
-                    last.add(new Function(variable.name, splitComma(current).stream().map(list -> new MathExpression(list, variables)).collect(Collectors.toList())));
+                    last.add(new Function(((Variable) part).name, splitComma(current).stream().map(list -> new MathExpression(list, variables)).collect(Collectors.toList())));
                 } else partStack.lastElement().add(new Parenthesis(new MathExpression(current, variables)));
                 current = partStack.pop();
             } else {
@@ -269,11 +274,19 @@ public class MathExpression {
 
         boolean isComplete();
 
-        record Number(double number) implements Part, Evaluable {
+        @EqualsAndHashCode
+        @Accessors(fluent = true)
+        @Getter
+        final class Number implements Part, Evaluable {
+            private final double number;
+
+            public Number(double number) {
+                this.number = number;
+            }
 
             @Override
             public List<Class<? extends Part>> validNextParts() {
-                return List.of(Operator.class, Parenthesis.class);
+                return Arrays.asList(Operator.class, Parenthesis.class);
             }
 
             @Override
@@ -285,13 +298,24 @@ public class MathExpression {
             public double evaluate(Map<String, Double> variables) {
                 return this.number;
             }
-        }
 
-        record Operator(OperatorType operator) implements Part {
+            @Override
+            public String toString() {
+                return String.valueOf(this.number);
+            }
+
+        }
+        
+        @EqualsAndHashCode
+        @Accessors(fluent = true)
+        @Getter
+        @RequiredArgsConstructor
+        final class Operator implements Part {
+            private final OperatorType operator;
 
             @Override
             public List<Class<? extends Part>> validNextParts() {
-                return List.of(Number.class, Parenthesis.class);
+                return Arrays.asList(Number.class, Parenthesis.class);
             }
 
             @Override
@@ -299,9 +323,16 @@ public class MathExpression {
                 return false;
             }
 
+            @Override
+            public String toString() {
+                return this.operator.name();
+            }
+
+
             @Getter
+            @Accessors(fluent = false)
             @RequiredArgsConstructor
-            enum OperatorType {
+            public enum OperatorType {
                 // these are in order of operation
                 POWER('^', Math::pow, 0),
                 MULTIPLY('*', (a, b) -> a * b, 1),
@@ -338,11 +369,19 @@ public class MathExpression {
             }
         }
 
-        record Parenthesis(MathExpression expression) implements Part, Evaluable {
+        @EqualsAndHashCode
+        @Accessors(fluent = true)
+        @Getter
+        final class Parenthesis implements Part, Evaluable {
+            private final MathExpression expression;
+
+            public Parenthesis(MathExpression expression) {
+                this.expression = expression;
+            }
 
             @Override
             public List<Class<? extends Part>> validNextParts() {
-                return List.of(Operator.class, Parenthesis.class);
+                return Arrays.asList(Operator.class, Parenthesis.class);
             }
 
             @Override
@@ -354,9 +393,21 @@ public class MathExpression {
             public double evaluate(Map<String, Double> variables) {
                 return this.expression.evaluate();
             }
+
+            @Override
+            public String toString() {
+                return "(" + this.expression.toString() + ")";
+            }
+
         }
 
-        record Function(String name, List<MathExpression> expressions) implements Part, Evaluable {
+        @EqualsAndHashCode
+        @Accessors(fluent = true)
+        @Getter
+        final class Function implements Part, Evaluable {
+            private final String name;
+            private final List<MathExpression> expressions;
+
 
             public Function(String name, List<MathExpression> expressions) {
                 this.name = name;
@@ -366,7 +417,7 @@ public class MathExpression {
 
             @Override
             public List<Class<? extends Part>> validNextParts() {
-                return List.of(Operator.class);
+                return Collections.singletonList(Operator.class);
             }
 
             @Override
@@ -391,11 +442,23 @@ public class MathExpression {
                     throw new IllegalStateException("Argument mismatch for math function " + this.name + " " + Arrays.toString(classes) + " (supplied " + Arrays.toString(evaluatedValues) + ")");
                 }
             }
+
+            @Override
+            public String toString() {
+                return this.name + "(" + this.expressions.stream().map(MathExpression::toString).collect(Collectors.joining(", ")) + ")";
+            }
+
         }
 
-        record Variable(String name) implements Part, Evaluable {
+
+        @EqualsAndHashCode
+        @Accessors(fluent = true)
+        @Getter
+        @RequiredArgsConstructor
+        final class Variable implements Part, Evaluable {
 
             private static final Map<String, Double> BUILT_IN = new ConcurrentHashMap<>();
+            private final String name;
 
             static {
                 Arrays.stream(Math.class.getFields()).filter(field -> Modifier.isPublic(field.getModifiers())).forEach(field -> {
@@ -409,7 +472,7 @@ public class MathExpression {
 
             @Override
             public List<Class<? extends Part>> validNextParts() {
-                return List.of(Operator.class);
+                return Collections.singletonList(Operator.class);
             }
 
             @Override
@@ -425,19 +488,33 @@ public class MathExpression {
                 return val;
             }
 
+            @Override
+            public String toString() {
+                return this.name;
+            }
+
         }
 
-        record Comma() implements Part {
+        @EqualsAndHashCode
+        @Accessors(fluent = true)
+        @Getter
+        final class Comma implements Part {
 
             @Override
             public List<Class<? extends Part>> validNextParts() {
-                return List.of(Parenthesis.class, Number.class, Variable.class, Function.class);
+                return Arrays.asList(Parenthesis.class, Number.class, Variable.class, Function.class);
             }
 
             @Override
             public boolean isComplete() {
                 return false;
             }
+
+            @Override
+            public String toString() {
+                return ", ";
+            }
+
         }
 
     }

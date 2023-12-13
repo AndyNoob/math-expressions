@@ -6,11 +6,11 @@
 
     <groupId>me.comfortable_andy</groupId>
     <artifactId>math-expressions</artifactId>
-    <version>1.2.1</version>
+    <version>1.2.2</version>
 
     <properties>
-        <maven.compiler.source>17</maven.compiler.source>
-        <maven.compiler.target>17</maven.compiler.target>
+        <maven.compiler.source>8</maven.compiler.source>
+        <maven.compiler.target>8</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
