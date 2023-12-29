@@ -1,3 +1,8 @@
+# v1.2.3
+```diff
++ Allow expression to start with a + or - sign
+```
+
 # v1.2.2
 ```diff
 ~ Downgraded java to 8 (no breaking changes)
