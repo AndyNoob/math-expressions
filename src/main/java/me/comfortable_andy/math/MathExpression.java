@@ -182,7 +182,7 @@ public class MathExpression {
                 .map(OperatorType::getSymbol)
                 .map(chara -> "\\" + chara)
                 .collect(Collectors.joining());
-        final Pattern pattern = Pattern.compile("([A-Za-z0-9]+)|,|(-?\\\\d+(?>\\\\.\\\\d+|\\\\.)?)|[" + operators + "]");
+        final Pattern pattern = Pattern.compile("([A-Za-z0-9]+)|,|(-?\\d+(?>\\\\.\\d+|\\.)?)|[" + operators + "]");
         final Matcher matcher = pattern.matcher(tokens);
 
         final List<Part> parts = new ArrayList<>();

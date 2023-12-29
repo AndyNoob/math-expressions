@@ -41,6 +41,10 @@ public class MathExpressionTest {
             "acos()", "2^", "1+", "atan2(0)", "(", ")", "(1+1(96)^2abc", "^23"
     );
 
+    static {
+        SIMPLE_EXPRESSIONS.put("10 + -12", -2.0);
+    }
+
     @Test
     public void testEvaluatePass() {
         final Map<String, Double> testing = new HashMap<>();
@@ -89,6 +93,7 @@ public class MathExpressionTest {
         }).collect(Collectors.joining(" "));
     }
 
+    @SuppressWarnings("SameParameterValue")
     private static Map<String, Double> of(String k1, Double v1, String k2, Double v2, String k3, Double v3, String k4, Double v4, String k5, Double v5, String k6, Double v6, String k7, Double v7, String k8, Double v8, String k9, Double v9, String k10, Double v10) {
         return new HashMap<String, Double>() {{
             put(k1, v1);

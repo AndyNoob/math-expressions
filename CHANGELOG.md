@@ -1,3 +1,8 @@
+# v1.2.4
+```diff
+~ Fixed typos in the parsing regex to allow the parsing of negative numbers
+```
+
 # v1.2.3
 ```diff
 + Allow expression to start with a + or - sign
