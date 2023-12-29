@@ -12,8 +12,8 @@ import static org.junit.jupiter.api.Assertions.*;
 public class MathExpressionTest {
 
     private static final Map<String, Double> SIMPLE_EXPRESSIONS = of(
-            "1 + 1", 2.0,
-            "1 + 1 * 2", 3.0,
+            "-1 + 1", 0.0,
+            "+1 + 1 * 2", 3.0,
             "1 + 1 * 2 / 2", 2.0,
             "1 + 1 * 2 / 2 ^ 2", 1.5,
             "1 + 1 * 2 / 2 ^ 2 - 1", 0.5,
@@ -38,7 +38,7 @@ public class MathExpressionTest {
     );
 
     private static final List<String> FAILS = Arrays.asList(
-            "acos()", "2^", "1+", "atan2(0)", "(", ")", "(1+1(96)^2abc"
+            "acos()", "2^", "1+", "atan2(0)", "(", ")", "(1+1(96)^2abc", "^23"
     );
 
     @Test

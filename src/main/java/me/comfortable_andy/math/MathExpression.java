@@ -62,6 +62,12 @@ public class MathExpression {
             }
         }
 
+        if (operators.size() == evaluated.size()) {
+            if (operators.get(0).operator().isCanStart())
+                evaluated.add(0, 0.0);
+            else throw new IllegalStateException("Cannot start with " + operators.get(0));
+        }
+
         for (EnumSet<OperatorType> types : OperatorType.getByOrder()) {
             // the constants in the operator enum are ordered by their precedence in
             // order of operation
@@ -94,7 +100,8 @@ public class MathExpression {
     }
 
     public boolean isValid() {
-        boolean shouldHaveEvaluable = true;
+        if (this.parts.isEmpty()) return false;
+        boolean shouldHaveEvaluable = this.parts.get(0) instanceof Evaluable;
 
         for (Part part : this.parts) {
             if (part instanceof Part.Evaluable) {
@@ -334,16 +341,17 @@ public class MathExpression {
             @RequiredArgsConstructor
             public enum OperatorType {
                 // these are in order of operation
-                POWER('^', Math::pow, 0),
-                MULTIPLY('*', (a, b) -> a * b, 1),
-                DIVIDE('/', (a, b) -> a / b, 1),
-                ADD('+', Double::sum, 2),
-                SUBTRACT('-', (a, b) -> a - b, 2),
+                POWER('^', Math::pow, 0, false),
+                MULTIPLY('*', (a, b) -> a * b, 1, false),
+                DIVIDE('/', (a, b) -> a / b, 1, false),
+                ADD('+', Double::sum, 2, true),
+                SUBTRACT('-', (a, b) -> a - b, 2, true),
                 ;
 
                 private final char symbol;
                 private final BiFunction<Double, Double, Double> combiner;
                 private final int executionIndex;
+                private final /* nullable */ boolean canStart;
 
                 public static OperatorType valueOfSymbol(char c) {
                     for (OperatorType type : values()) {
