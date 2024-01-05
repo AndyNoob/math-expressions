@@ -1,3 +1,8 @@
+# v1.2.5
+```diff
++ Allow plus/minus operators to be used as modifiers
+```
+
 # v1.2.4
 ```diff
 ~ Fixed typos in the parsing regex to allow the parsing of negative numbers
