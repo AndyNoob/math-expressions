@@ -46,26 +46,39 @@ public class MathExpression {
 
         // first ensure list is valid
         if (this.parts.isEmpty()) throw new IllegalStateException("Empty parts list");
-        if (!isValid()) throw new IllegalStateException("Invalid expression, missing operators");
 
         // then evaluate all evaluable parts
 
         final List<Double> evaluated = new ArrayList<>();
         // the size of this list should be 1 less than the evaluated list
-        final List<Operator> operators = new ArrayList<>();
+        final List<List<Operator>> operators = new ArrayList<>();
+
+        int index = 0;
 
         for (Part part : this.parts) {
             if (part instanceof Part.Evaluable) {
                 evaluated.add(((Part.Evaluable) part).evaluate(this.variables));
+                index++;
             } else {
-                operators.add((Operator) part);
+                while (index >= operators.size())
+                    operators.add(new ArrayList<>());
+
+                final List<Operator> current = operators.get(index);
+                final Operator adding = (Operator) part;
+                if (index == 0 && current.isEmpty() && adding.operator.modifier == null)
+                    throw new IllegalStateException("Cannot start expression with " + adding);
+                if (!current.isEmpty() && adding.operator.modifier == null)
+                    throw new IllegalStateException("Duplicate operators");
+                current.add(adding);
             }
         }
 
-        if (operators.size() == evaluated.size()) {
-            if (operators.get(0).operator().isCanStart())
-                evaluated.add(0, 0.0);
-            else throw new IllegalStateException("Cannot start with " + operators.get(0));
+        if (evaluated.size() <= 1) {
+            double val = evaluated.get(0);
+            final List<Operator> list;
+            if (!operators.isEmpty() && (list = operators.get(0)).size() > 1)
+                val = applyModifiers(val, list.subList(1, list.size()));
+            return val;
         }
 
         for (EnumSet<OperatorType> types : OperatorType.getByOrder()) {
@@ -77,15 +90,28 @@ public class MathExpression {
         return evaluated.get(0);
     }
 
-    private void pass(EnumSet<OperatorType> types, List<Double> evaluated, List<Operator> operators) {
-        for (int i = 0; i < operators.size(); i++) {
-            if (!types.contains(operators.get(i).operator())) continue;
+    private void pass(EnumSet<OperatorType> types, List<Double> evaluated, List<List<Operator>> operators) {
+        if (evaluated.size() <= 1) return;
+        for (int i = 0; i < evaluated.size() - 1; i++) {
+            if (i != 0 && i >= operators.size())
+                throw new IllegalStateException("Missing operator at the " + (i + 1) + " token.");
 
-            final double left = evaluated.get(i);
-            final double right = evaluated.get(i + 1);
-            final OperatorType operator = operators.get(i)
-                    .operator();
-            final double result = operator
+            final List<Operator> currentOperators = operators.get(i);
+            final List<Operator> nextOperators = operators.get(i + 1);
+            final OperatorType combiningOperator = nextOperators.get(0).operator();
+
+            if (!types.contains(combiningOperator))
+                continue;
+
+            double left = evaluated.get(i);
+            if (!currentOperators.isEmpty())
+                left = applyModifiers(left, currentOperators.subList(i == 0 ? 0 : (currentOperators.size() == 1 ? currentOperators.size() : 1), currentOperators.size()));
+
+            double right = evaluated.get(i + 1);
+            if (nextOperators.size() > 1)
+                right = applyModifiers(right, nextOperators.subList(1, nextOperators.size()));
+
+            final double result = combiningOperator
                     .getCombiner()
                     .apply(left, right);
 
@@ -93,10 +119,22 @@ public class MathExpression {
             evaluated.set(i, result);
             evaluated.remove(i + 1);
 
-            // remove operator and decrement 'i',
+            // remove operators and decrement 'i',
             // so that 'i' is the same in the next iteration
-            operators.remove(i--);
+            operators.remove(i + 1);
+            i--;
+
+            // remove modifying operators
+            if (!currentOperators.isEmpty()) {
+                final Operator temp = currentOperators.get(0);
+                currentOperators.clear();
+                currentOperators.add(temp);
+            }
         }
+    }
+
+    private double applyModifiers(double val, List<Operator> operators) {
+        return val * operators.stream().mapToInt(operator -> operator.operator.modifier).reduce(1, (a, b) -> a * b);
     }
 
     public boolean isValid() {
@@ -322,7 +360,7 @@ public class MathExpression {
 
             @Override
             public List<Class<? extends Part>> validNextParts() {
-                return Arrays.asList(Number.class, Parenthesis.class);
+                return Arrays.asList(Number.class, Parenthesis.class, Operator.class);
             }
 
             @Override
@@ -341,17 +379,17 @@ public class MathExpression {
             @RequiredArgsConstructor
             public enum OperatorType {
                 // these are in order of operation
-                POWER('^', Math::pow, 0, false),
-                MULTIPLY('*', (a, b) -> a * b, 1, false),
-                DIVIDE('/', (a, b) -> a / b, 1, false),
-                ADD('+', Double::sum, 2, true),
-                SUBTRACT('-', (a, b) -> a - b, 2, true),
+                POWER('^', Math::pow, 0, null),
+                MULTIPLY('*', (a, b) -> a * b, 1, null),
+                DIVIDE('/', (a, b) -> a / b, 1, null),
+                ADD('+', Double::sum, 2, 1),
+                SUBTRACT('-', (a, b) -> a - b, 2, -1),
                 ;
 
                 private final char symbol;
                 private final BiFunction<Double, Double, Double> combiner;
                 private final int executionIndex;
-                private final /* nullable */ boolean canStart;
+                private final /* nullable */ Integer modifier;
 
                 public static OperatorType valueOfSymbol(char c) {
                     for (OperatorType type : values()) {

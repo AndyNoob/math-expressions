@@ -43,6 +43,9 @@ public class MathExpressionTest {
 
     static {
         SIMPLE_EXPRESSIONS.put("10 + -12", -2.0);
+        SIMPLE_EXPRESSIONS.put("-thing + -12", -112.0);
+        SIMPLE_EXPRESSIONS.put("100 + -thing + -12", -12.0);
+        SIMPLE_EXPRESSIONS.put("-12 - + + + - - thing", -112.0);
     }
 
     @Test
@@ -58,6 +61,7 @@ public class MathExpressionTest {
             final MathExpression expression = MathExpression.parse(entry.getKey());
             System.out.println("Expression parsed: " + syntaxHighlight(expression));
             expression.setVariable("x", 0);
+            expression.setVariable("thing", 100);
             System.out.print("Evaluating: " + colorize(String.valueOf(entry.getValue()), BRIGHT_BLACK_BACK()) + " ... ");
             final double evaluated = expression.evaluate();
             System.out.print(colorize(String.valueOf(evaluated), BLACK_TEXT(), BRIGHT_WHITE_BACK()));
