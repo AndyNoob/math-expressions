@@ -9,6 +9,8 @@ A lil one class library to quickly evaluate simple math expressions. Or just to 
 
 (just click the jitpack badge)
 
+Use the `MathExpression#parse` method to get an instance of `MathExpression`. Think of this like compiling ahead of time. The required argument is the string of the expression (i.e. `19 * 12`). You may also provide a map of string (name) and double (value) as an optional second argument. Alternatively, you can set a variable by invoking `MathExpression#setVariable` (a chainable method), which takes a string and double. All of the constants in the JDK `Math` class are added automatically as built-in variables (i.e. `PI`). Once you are ready, simply invoke `MathExpression#evaluate`. You may invoke the method multiple times (intended for if the variables change). 
+
 <details>
 
 <summary>Maven (edit pom.xml)</summary>
